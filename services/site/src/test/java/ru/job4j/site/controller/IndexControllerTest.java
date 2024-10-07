@@ -21,7 +21,6 @@ import java.util.List;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
@@ -48,13 +47,15 @@ class IndexControllerTest {
     private AuthService authService;
     @MockBean
     private NotificationService notificationService;
+    @MockBean
+    private ProfilesService profilesService;
 
     private IndexController indexController;
 
     @BeforeEach
     void initTest() {
         this.indexController = new IndexController(
-                categoriesService, interviewsService, authService, notificationService
+                categoriesService, interviewsService, authService, notificationService, profilesService
         );
     }
 
@@ -95,7 +96,6 @@ class IndexControllerTest {
         var actualBreadCrumbs = model.getAttribute("breadcrumbs");
         var actualUserInfo = model.getAttribute("userInfo");
         var actualInterviews = model.getAttribute("new_interviews");
-
         assertThat(view).isEqualTo("index");
         assertThat(actualCategories).usingRecursiveComparison().isEqualTo(listCat);
         assertThat(actualBreadCrumbs).usingRecursiveComparison().isEqualTo(listBread);
