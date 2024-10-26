@@ -6,10 +6,13 @@ import org.telegram.telegrambots.meta.api.methods.BotApiMethod;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import ru.checkdev.notification.domain.PersonDTO;
+import ru.checkdev.notification.domain.TgUser;
+import ru.checkdev.notification.service.TgService;
 import ru.checkdev.notification.telegram.config.TgConfig;
 import ru.checkdev.notification.telegram.service.TgAuthCallWebClint;
 
 import java.util.Calendar;
+import java.util.Optional;
 
 /**
  * 3. Мидл
@@ -21,16 +24,22 @@ import java.util.Calendar;
 @AllArgsConstructor
 @Slf4j
 public class RegAction implements Action {
+
     private static final String ERROR_OBJECT = "error";
     private static final String URL_AUTH_REGISTRATION = "/registration";
-    private final TgConfig tgConfig = new TgConfig("tg/", 8);
+    private final TgConfig tgConfig;
     private final TgAuthCallWebClint authCallWebClint;
     private final String urlSiteAuth;
+    private final TgService tgService;
 
     @Override
     public BotApiMethod<Message> handle(Message message) {
         var chatId = message.getChatId().toString();
-        var text = "Введите email для регистрации:";
+        Optional<TgUser> byChatId = tgService.findByChatId(chatId);
+        if (byChatId.isPresent()) {
+            return new SendMessage(chatId, "Такой аккаунт уже существует.");
+        }
+        var text = "Введите ФИО и email для регистрации:";
         return new SendMessage(chatId, text);
     }
 
@@ -48,11 +57,16 @@ public class RegAction implements Action {
      */
     @Override
     public BotApiMethod<Message> callback(Message message) {
-        var chatId = message.getChatId().toString();
-        var email = message.getText();
         var text = "";
         var sl = System.lineSeparator();
-
+        var chatId = message.getChatId().toString();
+        var fioAndEmail = tgConfig.parseMessageFioAndEmail(message);
+        if (fioAndEmail.isEmpty()) {
+            text = "Данные некорректны.";
+            return new SendMessage(chatId, text);
+        }
+        var fio = fioAndEmail.get("fio");
+        var email = fioAndEmail.get("email");
         if (!tgConfig.isEmail(email)) {
             text = "Email: " + email + " не корректный." + sl
                    + "попробуйте снова." + sl
@@ -76,9 +90,18 @@ public class RegAction implements Action {
         var mapObject = tgConfig.getObjectToMap(result);
 
         if (mapObject.containsKey(ERROR_OBJECT)) {
-            text = "Ошибка регистрации: " + mapObject.get(ERROR_OBJECT);
+            text = "Ошибка регистрации: "
+                    + mapObject.get(ERROR_OBJECT) + sl
+                    + "попробуйте снова." + sl
+                    + "/new";
             return new SendMessage(chatId, text);
         }
+
+        TgUser newUserTg = new TgUser();
+        newUserTg.setChatId(chatId);
+        newUserTg.setUsername(fio);
+        newUserTg.setEmail(email);
+        tgService.save(newUserTg);
 
         text = "Вы зарегистрированы: " + sl
                + "Логин: " + email + sl
