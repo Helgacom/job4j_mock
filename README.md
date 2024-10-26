@@ -210,7 +210,7 @@ Smoke-тесты:
 - [Установка Docker](https://docs.docker.com/get-docker/)
 - [Установка Docker Compose](https://docs.docker.com/compose/install/)
 2. В корне проекта создайте файл docker-compose.yml.
-3. Запустите Docker Compose: `docker-compose up`
+3. Запустите Docker Compose: `docker-compose up -d`
    Эта команда соберёт и запустит контейнеры, указанные в docker-compose.yml.
    Приложение будет доступно на порту 8080, а база данных на порту 5432.
 4. Для остановки и удаления контейнеров: `docker-compose down`
